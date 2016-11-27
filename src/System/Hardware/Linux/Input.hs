@@ -27,7 +27,6 @@ import Data.Word (Word16, Word32)
 
 import qualified Data.ByteString.Lazy as BS (length)
 
-
 -- | Input events from Linux /dev/input streams.  See \<<https://github.com/torvalds/linux/blob/master/include/uapi/linux/input.h>\> for details.
 data InputEvent =
   InputEvent

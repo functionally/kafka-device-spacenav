@@ -89,9 +89,9 @@ interpretSpaceNav x =
 twosComplement :: Word32 -- ^ The two's complement.
                -> Int    -- ^ The corresponding integer.
 twosComplement x =
-  fromEnum (x' .&. complement mask) - fromEnum (x' .&. mask)
+  fromIntegral (x' .&. complement mask) - fromIntegral (x' .&. mask)
     where
-      x' = fromEnum x :: Int
+      x' = fromIntegral x :: Int
       mask = 1 `shift` 31
 
 
