@@ -7,8 +7,6 @@ Stability   :  Experimental
 Portability :  Linux
 
 Interpret events from a SpaceNavigator \<<http://www.3dconnexion.com/products/spacemouse/spacenavigator.html>\>.
-
-The interpretation of SpaceNavigator device output in this module is based on Jan Ciger's public-domain work \<<http://janoc.rd-h.com/files/software/linux/spacenav/spacenavig.c>\>, as discussed in \<<http://janoc.rd-h.com/archives/74>\>.
 -}
 
 
@@ -17,10 +15,9 @@ The interpretation of SpaceNavigator device output in this module is based on Ja
 
 
 module System.Hardware.Linux.SpaceNav (
--- * Types and values
+-- * Types and sizes
   SpaceNav(..)
-, minValue
-, maxValue
+, byteLength
 -- * Event handling
 , interpretSpaceNav
 , readSpaceNav
@@ -28,34 +25,30 @@ module System.Hardware.Linux.SpaceNav (
 
 
 import Data.Aeson.Types (FromJSON, ToJSON)
-import Data.Binary (Binary)
+import Data.Binary (Binary(..), decode)
+import Data.Bits ((.&.), complement, shift)
+import Data.ByteString.Lazy.Char8 as BS (ByteString, readFile, splitAt)
 import Data.Serialize (Serialize)
-import Data.ByteString.Lazy.Char8 as BS (ByteString, length, readFile, splitAt, unpack)
-import Data.Bits ((.&.), (.|.), complement, shift)
-import Debug.Trace (trace)
+import Data.Word (Word32)
 import GHC.Generics (Generic)
-
-
--- | The minimum for 'value'.
-minValue :: Int
-minValue = - maxValue
-
-
--- | The maximum for 'value'.
-maxValue :: Int
-maxValue = 32767
+import System.Hardware.Linux.Input (InputEvent(..), byteLength)
 
 
 -- | SpaceNavigator data.
 data SpaceNav =
-  SpaceNav
-  {
-    timestamp :: Int  -- ^ The event timestamp in milliseconds.
-  , value     :: Int  -- ^ The data value.
-  , number    :: Int  -- ^ The button or axis number.
-  , button    :: Bool -- ^ Whether the button is being reported.
-  , axis      :: Bool -- ^ Whether the axis is being reported.
-  }
+    SpaceNavButton
+    {
+      timestamp :: Integer -- ^ The event timestamp, in POSIX picoseconds.
+    , number    :: Int     -- ^ The button number.
+    , pressed   :: Bool    -- ^ Whether the button is depressed.
+    }
+  | SpaceNavAnalog
+    {
+      timestamp :: Integer -- ^ The event timestamp, in POSIX picoseconds.
+    , number    :: Int     -- ^ The axis number.
+    , setting   :: Double  -- ^ The data value.
+    }
+  | SpaceNavNull
     deriving (Eq, Generic, Ord, Read, Show)
 
 instance FromJSON SpaceNav
@@ -67,30 +60,39 @@ instance Binary SpaceNav
 instance Serialize SpaceNav
 
 
--- | Interpret SpaceNavigator event bytes on a Linux input device, specified in \<<https://github.com/torvalds/linux/blob/master/include/uapi/linux/input.h>\>.  This interpretation is based on Jan Ciger's public-domain work \<<http://janoc.rd-h.com/files/software/linux/spacenav/spacenavig.c>\>, as discussed in \<<http://janoc.rd-h.com/archives/74>\>.
-interpretSpaceNav :: ByteString -- ^ The twenty-four bytes.
+-- | Interpret SpaceNavigator event bytes on a Linux input deviceThis interpretation is based on \<<https://github.com/vrpn/vrpn/blob/master/vrpn_3DConnexion.h>\> and \<<https://github.com/vrpn/vrpn/blob/master/vrpn_3DConnexion.c>\>.
+interpretSpaceNav :: ByteString -- ^ The bytes from /dev/input.
                   -> SpaceNav   -- ^ The corresponding SpaceNavigator data.
-interpretSpaceNav x
-  | BS.length x /= 24 = error "System.Hardware.Linux.SpaceNav.interpretSpaceNav: twenty-four bytes required."
-  | otherwise         = let
-                         [x0, x1, x2, x3, x4, x5, x6, x7] = fromEnum <$> drop 16 (unpack x)
-                         timestamp = 0     -- FIXME
-                         value     = 0     -- FIXME
-                         typ       = 0     -- FIXME
-                         number    = 0     -- FIXME
-                         button    = False -- FIXME
-                         axis      = False -- FIXME
-                       in
-                         trace (show ([x0, x1], [x2, x3], [x4, x5, x6, x7])) SpaceNav{..}
+interpretSpaceNav x =
+  let
+    InputEvent{..} = decode x
+    (seconds, microseconds) = timeval
+    seconds' = fromIntegral seconds :: Integer
+    microseconds' = fromIntegral microseconds :: Integer
+    timestamp = (10^(6 :: Int) * seconds' + microseconds') * 10^(6 :: Int)
+  in
+    case typ of
+      0x01 -> let
+               number = fromIntegral $ code .&. 0x00ff
+               pressed = value /= 0
+             in
+               SpaceNavButton{..}
+      0x02 -> let
+                number = fromIntegral code
+                setting = fromIntegral (twosComplement value) / 400
+              in
+                SpaceNavAnalog{..}
+      _    -> SpaceNavNull
 
 
 -- | Decode a two's complement.
-twosComplement :: Int -- ^ The two's complement.
-               -> Int -- ^ THe corresponding integer.
+twosComplement :: Word32 -- ^ The two's complement.
+               -> Int    -- ^ The corresponding integer.
 twosComplement x =
-  fromEnum (x .&. complement mask) - fromEnum (x .&. mask)
+  fromEnum (x' .&. complement mask) - fromEnum (x' .&. mask)
     where
-      mask = 0x8000
+      x' = fromEnum x :: Int
+      mask = 1 `shift` 31
 
 
 -- | Read a stream of SpaceNavigator data.

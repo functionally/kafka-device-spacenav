@@ -19,14 +19,12 @@ module Network.UI.Kafka.SpaceNav (
 ) where
 
 
-import Control.Monad (guard)
 import Data.ByteString.Lazy.Char8 (hGet)
-import Data.Maybe (catMaybes)
 import Network.Kafka (KafkaAddress, KafkaClientId)
 import Network.Kafka.Protocol (TopicName)
 import Network.UI.Kafka (ExitAction, LoopAction, Sensor, producerLoop)
 import Network.UI.Kafka.Types (Button(..), Event(..), Toggle(..))
-import System.Hardware.Linux.SpaceNav (SpaceNav(..), interpretSpaceNav, maxValue)
+import System.Hardware.Linux.SpaceNav (SpaceNav(..), byteLength, interpretSpaceNav)
 import System.IO (IOMode(ReadMode), hClose, openFile)
 
 
@@ -44,7 +42,7 @@ spacenavLoop path client address topic sensor =
       producerLoop client address topic sensor
         $ translate
         . interpretSpaceNav
-        <$> hGet spacenav 24
+        <$> hGet spacenav byteLength
     return
       (
         do
@@ -57,15 +55,6 @@ spacenavLoop path client address topic sensor =
 -- | Translate a SpaceNavigator event on Linux into events for Kafka.
 translate :: SpaceNav -- ^ The SpaceNavigator event.
           -> [Event]  -- ^ The corresponding events for Kafka.
-translate SpaceNav{..} =
-  catMaybes
-    [
-      do
-        guard button
-        return
-          $ ButtonEvent (IndexButton number, if value == 0 then Up else Down)
-    , do
-        guard axis
-        return
-          $ AnalogEvent number (fromIntegral value / fromIntegral maxValue)
-    ]
+translate SpaceNavButton{..} = [ButtonEvent (IndexButton number, if pressed then Down else Up)]
+translate SpaceNavAnalog{..} = [AnalogEvent number setting]
+translate SpaceNavNull       = []
