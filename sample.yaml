@@ -3,7 +3,7 @@ kafka       :
   address   : [localhost, 9092]
   topic     : events
 sensor      : spacenav
-path        : /dev/input/spacenavigator
+device      : /dev/input/spacenavigator
 xAxis       :
   axisNumber: 0
   increment : 0.020

@@ -27,8 +27,8 @@ import System.IO (IOMode(ReadMode), hClose, openFile)
 
 
 -- | Interpret events from a Linux SpaceNav.
-spacenavLoop :: Interpretation Double       -- ^ Instructions for interpretation.
-             -> IO (ExitAction, LoopAction) -- ^ Action to create the exit and loop actions.
+spacenavLoop :: Interpretation FilePath Double -- ^ Instructions for interpretation.
+             -> IO (ExitAction, LoopAction)    -- ^ Action to create the exit and loop actions.
 spacenavLoop interpretation@TrackInterpretation{..} =
   do
     let
@@ -36,7 +36,7 @@ spacenavLoop interpretation@TrackInterpretation{..} =
       analogHandler _                  = Nothing
       buttonHandler SpaceNavButton{..} = Just (number, pressed)
       buttonHandler _                  = Nothing
-    spacenav <- openFile path ReadMode
+    spacenav <- openFile device ReadMode
     (exit, loop) <-
       interpretationLoop analogHandler buttonHandler interpretation
         $ interpretSpaceNav <$> hGet spacenav byteLength
