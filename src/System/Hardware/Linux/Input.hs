@@ -1,6 +1,6 @@
 {-|
-Module      :  System.Hardware.Linux.Input
-Copyright   :  (c) 2016 Brian W Bush
+Module      :  $Header$
+Copyright   :  (c) 2016-17 Brian W Bush
 License     :  MIT
 Maintainer  :  Brian W Bush <consult@brianwbush.info>
 Stability   :  Experimental
@@ -26,6 +26,7 @@ import Data.Binary.Put (putWordhost, putWord16host, putWord32host)
 import Data.Word (Word16, Word32)
 
 import qualified Data.ByteString.Lazy as BS (length)
+
 
 -- | Input events from Linux /dev/input streams.  See \<<https://github.com/torvalds/linux/blob/master/include/uapi/linux/input.h>\> for details.
 data InputEvent =
