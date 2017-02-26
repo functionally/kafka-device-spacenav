@@ -45,7 +45,7 @@ executable kafka-device-spacenav
                ,    bytestring
                ,    cereal
                ,    kafka-device
-               ,    yaml
+               ,    yaml         >= 0.8.22
   hs-source-dirs:   src
   ghc-options:      -Wall
   default-language: Haskell2010
