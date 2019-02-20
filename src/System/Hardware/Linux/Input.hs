@@ -1,9 +1,9 @@
 {-|
 Module      :  $Header$
-Copyright   :  (c) 2016-17 Brian W Bush
+Copyright   :  (c) 2016-19 Brian W Bush
 License     :  MIT
-Maintainer  :  Brian W Bush <consult@brianwbush.info>
-Stability   :  Experimental
+Maintainer  :  Brian W Bush <code@functionally.io>
+Stability   :  Production
 Portability :  Linux
 
 Parse events from Linux /dev/input streams.  See \<<https://github.com/torvalds/linux/blob/master/include/uapi/linux/input.h>\> for details.
