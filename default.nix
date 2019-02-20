@@ -15,6 +15,6 @@ mkDerivation {
   executableHaskellDepends = [
   ];
   homepage = "https://bitbucket.org/functionally/kafka-device-spacenav";
-  description = "Linux spacenav events via a Kafka message broker";
+  description = "Linux SpaceNavigator events via a Kafka message broker";
   license = stdenv.lib.licenses.mit;
 }
