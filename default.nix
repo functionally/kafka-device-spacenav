@@ -5,7 +5,7 @@
 
 mkDerivation {
   pname = "kafka-device-spacenav";
-  version = "1.0.0.0";
+  version = "1.0.2.1";
   src = ./.;
   isLibrary = true;
   isExecutable = true;
